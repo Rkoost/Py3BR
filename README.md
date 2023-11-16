@@ -8,7 +8,7 @@ conda create --name myenv python
 conda activate myenv
 ```
 
-To install, navigate to the root directory of the repository and run 
+To install in the environment, navigate to the root directory of the repository and run 
 ```python
 python setup.py install
 ```
