@@ -12,8 +12,8 @@ if __name__ == '__main__':
     t0 = time.time()
     n_traj = 100
     result = []
-    long_out = '1k/long.csv'
-    short_out = '1k/short.csv'
+    long_out = 'results/long.csv'
+    short_out = 'results/short.csv'
     
     #----------------Parallel----------------#
     with mp.Pool(processes=os.cpu_count()) as p:

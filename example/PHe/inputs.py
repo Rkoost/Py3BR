@@ -29,9 +29,12 @@ input_dict = {'m1': m1, 'm2':m2, 'm3':m3,
                       'a_tol': 1e-12}}
 
 if __name__ == '__main__':
+    # Check potentials
     import matplotlib.pyplot as plt
     x = np.linspace(.2,20,1000)
     plt.plot(x, v12(x))
-    plt.xlim([6,12])
-    plt.ylim([-1e-4,1e-5])
+    plt.plot(x, v23(x))
+    plt.plot(x, v31(x))
+    #plt.xlim([6,12])
+    plt.ylim([-5e-4,5e-3])
     plt.show()
