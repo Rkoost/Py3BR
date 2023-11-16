@@ -2,10 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import mpl_toolkits.mplot3d.axes3d as p3
-from constants import *
-import util
+from Py3BR.constants import *
+import Py3BR.util as util
 
-def traj_plt(traj, ax, title = True, legend = True):
+def traj_plt(traj, ax=None, title = True, legend = True):
+    if ax == None:
+        ax = plt.gca()
     x = traj.x
     t = traj.t*ttos # a.u. to s
     r12, r23, r31 = util.jac2cart(x,traj.C1,traj.C2)
@@ -18,8 +20,11 @@ def traj_plt(traj, ax, title = True, legend = True):
         ax.legend()
     if title == True:
         ax.set_title(f'{traj.E0/K2Har} K')
+    return(ax)
 
-def traj_3d(traj):
+def traj_3d(traj, ax = None):
+    if ax == None:
+        ax = plt.gca()
     x = traj.x
     t = traj.t*ttos # a.u. to s
     r1 = np.array([-traj.C2*x[i] - traj.m3/traj.mtot*x[i+3] for i in range(0,3)])
@@ -66,8 +71,6 @@ def traj_gif(traj,theta,phi, output):
     r3 = np.array([(traj.m1 + traj.m2)/traj.mtot*x[i+3] for i in range(0,3)])
 
     data = [r1,r2,r3]
-
-
 
     # NOTE: Can't pass empty arrays into 3d version of plot()
     lines = [ax.plot(dat[0, 0:1], dat[1, 0:1], dat[2, 0:1])[0] for dat in data]

@@ -5,9 +5,8 @@ import matplotlib.pyplot as plt
 import sys
 import os
 import time
-from constants import *
-from potentials import *
-import util
+from Py3BR.constants import *
+import Py3BR.util as util
 
 class TBR(object):
     def __init__(self,**kwargs):
@@ -357,9 +356,10 @@ def runParT(N,cpus, **inputs):
 if __name__ == '__main__':
     import multiprocess as mp
     import pandas as pd
+    sys.path.insert(0, '../example/Sr+Cs/') # Add example input to path
     from inputs import *
     t0 = time.time()
-    n_traj = 1000
+    n_traj = 10
     # print(runOneT(**input_dict))
     result = []
     long_out = 'long.csv'

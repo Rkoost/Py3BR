@@ -1,5 +1,5 @@
 import numpy as np
-from constants import *
+from Py3BR.constants import *
 
 def morse(r,de = 1., alpha = 1., re = 1.):
     '''
