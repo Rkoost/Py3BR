@@ -4,8 +4,8 @@ Python Three(3) Body Recombination, a Python package for three-body recomination
 ## Installation
 I recommend installing Py3BR in a conda environment:
 ```python
-conda create --name 3br python
-conda activate 3br 
+conda create --name myenv python
+conda activate myenv
 ```
 
 To install, navigate to the root directory of the repository and run 
