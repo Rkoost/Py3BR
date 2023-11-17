@@ -30,12 +30,12 @@ if __name__ == '__main__':
                   header = os.path.isfile(short_out) == False or os.path.getsize(short_out) == 0)
     
     #-------------Run one and plot-----------#
-    traj = threebodies.TBR(**input_dict)
-    a = traj.runT()
-    #2-d Trajectory Plot
-    fig,ax = plt.subplots()
-    plotters.traj_plt(traj)
-    # 3-d Trajectory Plot
-    plt.figure(2)
-    plotters.traj_3d(traj)
-    plt.show()
+    #traj = threebodies.TBR(**input_dict)
+    #a = traj.runT()
+    ##2-d Trajectory Plot
+    #fig,ax = plt.subplots()
+    #plotters.traj_plt(traj)
+    ## 3-d Trajectory Plot
+    #plt.figure(2)
+    #plotters.traj_3d(traj)
+    #plt.show()
