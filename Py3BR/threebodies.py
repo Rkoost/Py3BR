@@ -88,7 +88,7 @@ class TBR(object):
         b = self.b0*bn/np.linalg.norm(bn)
 
         # Initial position in 6D space
-        self.R = self.R0 + self.ran*(rng.random()-1) # R0 +/ ran(ge)
+        self.R = self.R0 + self.ran*(2*rng.random()-1) # R0 +/ ran(ge)
         self.rho6D_0 =  b - self.P6D_0*np.sqrt(self.R**2 - self.b0**2)/self.P0
         rho1x,rho1y,rho1z,rho2x,rho2y,rho2z = self.rho6D_0
         # Jacobi to Cartesian
