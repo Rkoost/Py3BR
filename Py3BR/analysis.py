@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import integrate
 import pandas as pd
-from constants import *
+from Py3BR.constants import *
 
 fact_sig = (Boh2m*1e2)**5 # Sigma factor
 fact_k3 = (Boh2m*1e2)/ttos # k3 factor
@@ -114,6 +114,7 @@ def k3(input,mu0, mode = 'a', sep = None, output = None):
     return rate
 
 if __name__ == '__main__':
-    mu0 = 6504.062019864895
+    # mu0 = 6504.062019864895
+    mu0 = 120631.7241 #SrCs
     # sig = cross_section('../Tests/PHe/short.txt', output = '../Tests/PHe/sigma.txt')
-    k3('../Tests/PHe/short.txt',mu0, output = '../Tests/PHe/k3.txt')
+    k3('../Tests/Sr+Cs/short.txt',mu0, mode = 'w', output = '../Tests/Sr+Cs/k3.txt')
