@@ -16,7 +16,6 @@ def jac2cart(x,C1,C2):
 def get_results(traj):
     '''
     Gather results from the trajectory. 
-    If other attributes are desired, 
     '''
     results = {'e': traj.E0/K2Har,
                'b': traj.b0,
