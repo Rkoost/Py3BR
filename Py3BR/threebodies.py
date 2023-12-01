@@ -291,9 +291,7 @@ class TBR(object):
         else:
             self.count[3]+=1 # dissociation
 
-        
-
-        if plot == True:
+        if plot == True: # Set if running one trajectory 
             plt.figure(1)
             plt.plot(self.t,r12, label ='r12')
             plt.plot(self.t,r23, label = 'r23')
@@ -321,49 +319,29 @@ class TBR(object):
             plt.show()
         return 
     
-def get_results(traj):
-    results = {'e': traj.E0/K2Har,
-               'b': traj.b0,
-               'r12': traj.count[0],
-               'r23': traj.count[1],
-               'r31': traj.count[2],
-               'nd': traj.count[3],
-               'nc': traj.count[4],
-               'rej': traj.rejected,
-               'R': traj.R,
-               'tf': traj.t[-1]*ttos}
-    return results
 
 def runOneT(**kwargs):
+    '''
+    Runs one trajectory. Use this method as input into for loop or 
+    multiprocess pool for multiple trajectories.
+    '''
     try:
         traj = TBR(**kwargs)
         traj.runT()
     except:
         return
-    return get_results(traj)
-
-def runParT(N,cpus, **inputs):
-    import multiprocessing as mp
-    # import pandas as pd
-    fin = []
-    with mp.Pool(processes=cpus) as p:
-        event = [p.apply_async(runOneT, kwds=(inputs)) for i in range(N)]
-        print([res.get(timeout=1) for res in event])
-        # for res in event:
-        #     fin.append(res.get())
-    return 
+    return util.get_results(traj)
 
 if __name__ == '__main__':
     import multiprocess as mp
     import pandas as pd
-    sys.path.insert(0, '../example/Sr+Cs/') # Add example input to path
+    sys.path.insert(0, '../example/Sr+Cs/') # Add example to path
     from inputs import *
     t0 = time.time()
     n_traj = 10
-    # print(runOneT(**input_dict))
     result = []
-    long_out = 'long.csv'
-    short_out = 'short.csv'
+    long_out = '../example/long.csv'
+    short_out = '../example/short.csv'
     #----------------Parallel----------------#
     # with mp.Pool(processes=os.cpu_count()) as p:
     #     event = [p.apply_async(runOneT, kwds=(input_dict)) for i in range(n_traj)]
@@ -386,7 +364,5 @@ if __name__ == '__main__':
     # print(time.time() - t0)
     
     #--------------Run One-----------------#
-    t0 = time.time()
-    traj = TBR(**input_dict)
-    a = traj.runT(plot=True)
-    print(get_results(traj))
+    # a = traj.runT(plot=True)
+    # print(get_results(traj))
