@@ -16,7 +16,7 @@ class TBR(object):
         self.E0 = kwargs.get('E0')*K2Har
         self.b0 = kwargs.get('b0')
         self.R0 = kwargs.get('R0')
-        self.ran  = kwargs.get('range')
+        self.dR0  = kwargs.get('dR0')
         self.v12 = kwargs.get('v12')
         self.v23 = kwargs.get('v23')
         self.v31 = kwargs.get('v31')
@@ -88,7 +88,7 @@ class TBR(object):
         b = self.b0*bn/np.linalg.norm(bn)
 
         # Initial position in 6D space
-        self.R = self.R0 + self.ran*(2*rng.random()-1) # R0 +/ ran(ge)
+        self.R = self.R0 + self.dR0*(2*rng.random()-1) # R0 +/ dR0
         self.rho6D_0 =  b - self.P6D_0*np.sqrt(self.R**2 - self.b0**2)/self.P0
         rho1x,rho1y,rho1z,rho2x,rho2y,rho2z = self.rho6D_0
         # Jacobi to Cartesian
@@ -107,57 +107,21 @@ class TBR(object):
             self.rejected = self.rejected+1
             print(f'Rejected: Hyperradius R < impact parameter b0')
             self.set_t0()
-            # sys.exit()
         elif abs(self.v12(r12_0)) > 1e-2*self.E0:
             self.rejected = self.rejected+1
             print(f'Rejected: Collision energy ({self.E0}) < 100*V12 ({self.v12(r12_0)})')
             self.set_t0()
-            # sys.exit()
         elif abs(self.v23(r23_0)) > 1e-2*self.E0:
             self.rejected = self.rejected+1
             print(f'Rejected: Collision energy ({self.E0}) < 100*V23 ({self.v23(r23_0)})')
             self.set_t0()
-            # sys.exit()
         elif abs(self.v31(r31_0)) > 1e-2*self.E0:
             self.rejected = self.rejected+1
             print(f'Rejected: Collision energy ({self.E0}) < 100*V31 ({self.v31(r31_0)})')
             self.set_t0()
-            # sys.exit()
 
         return self.rho6D_0, self.P6D_0
         
-    
-    def hamiltonian(self,w):
-        rho1x, rho1y, rho1z, rho2x, rho2y, rho2z, \
-            p1x, p1y, p1z, p2x, p2y, p2z = w
-        
-        # Internuclear distances 
-        r12,r23,r31 = util.jac2cart(w[:6],self.C1,self.C2)
-        
-        ekin = 0.5*(p1x**2 + p1y**2 + p1z**2)/self.mu12 + \
-                0.5*(p2x**2 + p2y**2 + p2z**2)/self.mu312
-        
-        epot = self.v12(r12) + self.v23(r23) + self.v31(r31)
-
-        etot = ekin + epot
-
-        # Keep track of angular momenta
-        lx1 = rho1y*p1z - rho1z*p1y # Internal angular momentum
-        lx2 = rho2y*p2z - rho2z*p2y # Relative angular momentum
-        lx = lx1 + lx2 
-
-        ly1 = rho1z*p1x - rho1x*p1z
-        ly2 = rho2z*p2x - rho2x*p2z
-        ly = ly1 + ly2 
-
-        lz1 = rho1x*p1y - rho1y*p1x
-        lz2 = rho2x*p2y - rho2y*p2x
-        lz = lz1 + lz2 
-
-        ll = np.sqrt(lx**2 + ly**2 + lz**2)
-
-        return (etot, epot, ekin, ll)
-
     def hamEq(self,t,w):
         ''' 
         Writes Hamilton's equations as a vector field. 
@@ -204,8 +168,9 @@ class TBR(object):
         self.iCond() # Set intial position/momentum vectors in Jacobi coords.
         w0 = np.concatenate((self.rho6D_0,self.P6D_0[:3]*np.sqrt(self.mu12/self.mu0),
                              self.P6D_0[3:]*np.sqrt(self.mu312/self.mu0))) # Bare representation of P0
-        if self.rejected == 1:
+        if self.rejected == 1: # Stop calculation if rejected
             return
+        
         # Stop conditions
         def stop1(t,w):
             rho1x, rho1y, rho1z, rho2x, rho2y, rho2z, p1x, p1y, p1z, p2x, p2y, p2z = w
@@ -233,10 +198,10 @@ class TBR(object):
                 t_span = [0,tscale*self.t_stop], method = 'RK45', 
                 rtol = self.r_tol, atol = self.a_tol, events = (stop1,stop2,stop3))
         
-        wn = wsol.y
+        self.wn = wsol.y
         self.t = wsol.t
-        self.x = wn[:6]
-        En, Vn, Kn, Ln = self.hamiltonian(wn)
+        x = self.wn[:6] #rho1, rho2
+        En, Vn, Kn, Ln = util.hamiltonian(self,self.wn)
 
         self.delta_e = En[-1] - En[0] # Energy difference
         self.delta_l = Ln[-1] - Ln[0] # Momentum difference
@@ -246,7 +211,7 @@ class TBR(object):
             return
         # print(f'Time elapsed: {time.time()-t0}')
         # print(f'Energy difference: {self.delta_e}')
-        r12,r23,r31 = util.jac2cart(self.x,self.C1,self.C2) # Jacobi positions
+        r12,r23,r31 = util.jac2cart(x,self.C1,self.C2) # Jacobi positions
 
         rho1x, rho1y, rho1z, rho2x, \
         rho2y, rho2z, p1x, p1y, p1z, \
@@ -320,7 +285,7 @@ class TBR(object):
         return 
     
 
-def runOneT(**kwargs):
+def runOneT(*args,**kwargs):
     '''
     Runs one trajectory. Use this method as input into for loop or 
     multiprocess pool for multiple trajectories.
@@ -330,39 +295,4 @@ def runOneT(**kwargs):
         traj.runT()
     except:
         return
-    return util.get_results(traj)
-
-if __name__ == '__main__':
-    import multiprocess as mp
-    import pandas as pd
-    sys.path.insert(0, '../example/Sr+Cs/') # Add example to path
-    from inputs import *
-    t0 = time.time()
-    n_traj = 10
-    result = []
-    long_out = '../example/long.csv'
-    short_out = '../example/short.csv'
-    #----------------Parallel----------------#
-    # with mp.Pool(processes=os.cpu_count()) as p:
-    #     event = [p.apply_async(runOneT, kwds=(input_dict)) for i in range(n_traj)]
-    #     for res in event:
-    #         result.append(res.get())
-    #         df = pd.DataFrame([res.get()])
-    #         df.to_csv(long_out, mode = 'a', index=False,
-    #                     header = os.path.isfile(long_out) == False or os.path.getsize(long_out) == 0)
-    # df_short = pd.DataFrame(result)
-    # counts = df_short.loc[:,:'rej'].groupby(['e','b']).sum() # sum counts
-    # counts.to_csv(short_out, mode = 'a',
-    #               header = os.path.isfile(short_out) == False or os.path.getsize(short_out) == 0)
-    # print(f'Trajectories done in {time.time()-t0}s.')
-    #---------------Loop-------------------#
-    # t0 = time.time()
-    # for i in range(10):
-    #     result.append(runOneT(**input_dict))
-    # df = pd.DataFrame(result)
-    # print(df.sum())
-    # print(time.time() - t0)
-    
-    #--------------Run One-----------------#
-    # a = traj.runT(plot=True)
-    # print(get_results(traj))
+    return util.get_results(traj,*args)
