@@ -44,6 +44,10 @@ def dLJ(r, m=12,n=6, cm = 1., cn = 1.):
     return -m*cm/r**(m+1)+n*cn/r**(n+1)
 
 def He2_V(x):
+    '''
+    HFD-B3-FCI1 potential from 10.1088/0026-1394/27/4/005, 
+    parameters from10.1103/PhysRevLett.74.1586.
+    '''
     rm = 0.29683e-9/Boh2m # position of min of V(r) : equilibrium length \approx 2.96 Angestrom
     eps = 10.956 * K2Har # epsilon /k_B: reduction factor of potential \approx well depth = 3.32e-5 hartree
     A = 1.86924404e5
@@ -74,6 +78,10 @@ def He2_V(x):
     return V
 
 def He2_dV(x):
+    '''
+    HFD-B3-FCI1 potential from 10.1088/0026-1394/27/4/005, 
+    parameters from10.1103/PhysRevLett.74.1586.
+    '''
     rm = 0.29683e-9/Boh2m # position of min of V(r) : equilibrium length \approx 2.96 Angestrom
     eps = 10.956 * K2Har # epsilon /k_B: reduction factor of potential \approx well depth = 3.32e-5 hartree
     A = 1.86924404e5
@@ -94,31 +102,6 @@ def He2_dV(x):
         dV = 1/rm*eps*(A*(-alpha + 2*beta*R)*np.exp(-alpha*R + beta*R**2) + 
                         (6*c6*R**(-7) + 8*c8*R**(-9) + 10*c10*R**(-11)))
     return dV
-
-# TiHe
-def TiHe_V(r):
-    # c6  = 1.1491e+07 /Har2invcm 
-    c6  = 3.663e-78 * J2Har /(Boh2m)**6
-    c12 = 6.0719e+12/Har2invcm 
-    
-    V = c12*r**(-12) - c6*r**(-6)
-    return V
-
-def TiHe_dV(r):
-    J2Har = 2.2937122783963e17
-    Boh2m = 5.2917710903e-11 # Bohr radius (length in atu)
-    Har2invcm = 2.194746313632e5
-    invcm2J = 1.98644585714893e-23
-    K2Har = 3.166811563e-6
-
-    # c6  = 1.1491e+07 /Har2invcm 
-    c6  = 3.663e-78 * J2Har /(Boh2m)**6
-    c12 = 6.0719e+12/Har2invcm 
-    
-    dV = -12*c12*r**(-13) + 6*c6*r**(-7)
-    return dV
-
-
 
 if __name__ == '__main__':
     v= lambda x: LJ(x)
