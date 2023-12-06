@@ -7,30 +7,6 @@ from Py3BR.constants import *
 fact_sig = (Boh2m*1e2)**5 # Sigma factor
 fact_k3 = (Boh2m*1e2)/ttos # k3 factor
 
-def plot_opacity(input, sep = None, ax = None, output= False):    
-    if ax == None:
-        ax = plt.gca()
-    if sep:
-        df = pd.read_csv(input, sep = sep)
-    else:
-        df = pd.read_csv(input)
-    stats = df.groupby(['e','b']).sum()
-    nTraj = stats.sum(axis=1) - stats['rej']
-    pAB = (stats['r23']+stats['r31'])/nTraj
-    pAB_err = np.sqrt(stats['r23'] + stats['r31'])/nTraj*np.sqrt((nTraj-(stats['r23']+stats['r31']))/nTraj)
-    pBB = (stats['r12'])/nTraj
-    pBB_err = np.sqrt(stats['r12'])/nTraj*np.sqrt((nTraj-(stats['r12']))/nTraj)
-    ax.errorbar(df['b'], pAB, pAB_err, fmt='.',label = f'{pAB}')
-    ax.errorbar(df['b'], pBB, pBB_err, fmt='.', label = f'{pBB}')
-    opacity = pd.DataFrame([pAB,pBB], index=['pAB','pBB'])
-    if output:
-        if sep:
-            opacity.to_csv(f'{output}', mode = 'a', sep = sep)
-        else:
-            opacity.to_csv(f'{output}', mode = 'a')
-        print(f'Opacity function saved to {output}.')
-    return ax, opacity
-
 def opacity(input, mode = 'a', sep = None, output = None):
     '''
     Calculate P(E,b) of a three-body recombination event.
@@ -47,7 +23,8 @@ def opacity(input, mode = 'a', sep = None, output = None):
         df = pd.read_csv(input, sep = sep)
     else:
         df = pd.read_csv(input)
-    stats = df.loc[:,:'rej'].groupby(['e','b']).sum()
+    cols = ['e','b','r12','r23','r31','nd','nc','rej']
+    stats = df.loc[:,cols].groupby(['e','b']).sum()
     nTraj = stats.sum(axis=1) - stats['rej']
     pAB = (stats['r23']+stats['r31'])/nTraj
     pAB_err = np.sqrt(stats['r23'] + stats['r31'])/nTraj*np.sqrt((nTraj-(stats['r23']+stats['r31']))/nTraj)
@@ -76,8 +53,12 @@ def cross_section(input, mode = 'a',sep = None, output = None):
     stats = opacity(input,sep=sep,output=None).reset_index(level=1)
     # Find bmax
     bmax = {}
+
     for i in stats.index.unique():
-        bmax[i] = stats.loc[i][stats.loc[i]['pAB'] < 1e-3]['b'].iloc[0] 
+        try:
+            bmax[i] = stats.loc[i][stats.loc[i]['pAB'] < 1e-3]['b'].iloc[0] 
+        except IndexError:
+            print(f"Max impact parameter not reached for E = {i} K. Increase impact parameter until P(b) < 1e-3. ")
     # Create new dataframe up to bmax
     data_all = []
     for k,v in bmax.items():
