@@ -105,19 +105,15 @@ class TBR(object):
         self.rejected = 0
         if self.R < self.b0:
             self.rejected = self.rejected+1
-            print(f'Rejected: Hyperradius R < impact parameter b0')
             self.set_t0()
         elif abs(self.v12(r12_0)) > 1e-2*self.E0:
             self.rejected = self.rejected+1
-            print(f'Rejected: Collision energy ({self.E0}) < 100*V12 ({self.v12(r12_0)})')
             self.set_t0()
         elif abs(self.v23(r23_0)) > 1e-2*self.E0:
             self.rejected = self.rejected+1
-            print(f'Rejected: Collision energy ({self.E0}) < 100*V23 ({self.v23(r23_0)})')
             self.set_t0()
         elif abs(self.v31(r31_0)) > 1e-2*self.E0:
             self.rejected = self.rejected+1
-            print(f'Rejected: Collision energy ({self.E0}) < 100*V31 ({self.v31(r31_0)})')
             self.set_t0()
 
         return self.rho6D_0, self.P6D_0
@@ -296,3 +292,4 @@ def runOneT(*args,**kwargs):
     except:
         return
     return util.get_results(traj,*args)
+
