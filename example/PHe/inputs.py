@@ -5,10 +5,10 @@ m1 = 4.002602*u2me  # Helium mass
 m2 = 4.002602*u2me
 m3 = 30.974 *u2me   # P
 
-E0 = 1     # collision energy
+E0 = 0.1     # collision energy
 b0 = 0
 R0 = 550
-ran = 25
+dR0 = 25
 
 v12 = lambda x: He2_V(x)
 dv12 = lambda x: He2_dV(x)
@@ -19,7 +19,7 @@ dv31 = lambda x: dLJ(x,m=12,n=6,cm=9.9721e+5, cn=14.69)
 
 input_dict = {'m1': m1, 'm2':m2, 'm3':m3,
               'E0': E0, 'b0': b0, 'R0':R0,
-              'range': ran, 
+              'dR0': dR0, 
               'v12':v12, 'v23':v23,'v31':v31,
               'dv12':dv12, 'dv23':dv23, 'dv31':dv31,
               'seed': None, 
