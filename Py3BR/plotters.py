@@ -8,7 +8,7 @@ import Py3BR.util as util
 def traj_plt(traj, ax=None, title = True, legend = True):
     if ax == None:
         ax = plt.gca()
-    x = traj.x
+    x = traj.wn[:6]
     t = traj.t*ttos # a.u. to s
     r12, r23, r31 = util.jac2cart(x,traj.C1,traj.C2)
     ax.plot(t,r12, label='r12')
@@ -25,7 +25,7 @@ def traj_plt(traj, ax=None, title = True, legend = True):
 def traj_3d(traj, ax = None):
     if ax == None:
         ax = plt.gca()
-    x = traj.x
+    x = traj.wn[:6]
     t = traj.t*ttos # a.u. to s
     r1 = np.array([-traj.C2*x[i] - traj.m3/traj.mtot*x[i+3] for i in range(0,3)])
     r2 = np.array([traj.C1*x[i]-traj.m3/traj.mtot*x[i+3] for i in range(0,3)])
@@ -64,7 +64,7 @@ def traj_gif(traj,theta,phi, output):
             line.set_3d_properties(data[2, :num])
         return lines
     
-    x = traj.x
+    x = traj.wn[:6]
     t = traj.t
     r1 = np.array([-traj.C2*x[i] - traj.m3/traj.mtot*x[i+3] for i in range(0,3)])
     r2 = np.array([traj.C1*x[i]-traj.m3/traj.mtot*x[i+3] for i in range(0,3)])
