@@ -10,7 +10,7 @@ ntraj = 200
 for b in bi:
     input_dict['b0'] = b # Update b
     # Run N trajectories and write to short, long output files
-    long,short = threebodies.runN(ntraj, input_dict, short_out = short_out, long_out = long_out)
+    threebodies.runN(ntraj, input_dict, short_out = short_out, long_out = long_out)
 
 #-------------Analysis------------------#
 m1,m2,m3 = input_dict['m1'],input_dict['m2'],input_dict['m3']
