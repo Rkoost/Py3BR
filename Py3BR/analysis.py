@@ -38,7 +38,7 @@ def opacity(input, mode = 'a', sep = None, output = None):
             opacity.to_csv(f'{output}', mode = mode)
     return opacity.T
 
-def cross_section(input, mode = 'a',sep = None, output = None):
+def cross_section(input, tolerance = 1e-3, mode = 'a',sep = None, output = None):
     '''
     Calculate cross section sigma(E) of a three-body recombination event.
     Input Parameters:
@@ -53,12 +53,11 @@ def cross_section(input, mode = 'a',sep = None, output = None):
     stats = opacity(input,sep=sep,output=None).reset_index(level=1)
     # Find bmax
     bmax = {}
-
     for i in stats.index.unique():
         try:
-            bmax[i] = stats.loc[i][stats.loc[i]['pAB'] < 1e-3]['b'].iloc[0] 
+            bmax[i] = stats.loc[i][stats.loc[i]['pAB'] < tolerance]['b'].iloc[0] 
         except IndexError:
-            print(f"Max impact parameter not reached for E = {i} K. Increase impact parameter until P(b) < 1e-3. ")
+            print(f"Max impact parameter not reached for E = {i} K. Increase impact parameter until P(b) < {tolerance}. ")
     # Create new dataframe up to bmax
     data_all = []
     for k,v in bmax.items():
