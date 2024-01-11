@@ -48,7 +48,7 @@ def He2_V(x):
     HFD-B3-FCI1 potential from 10.1088/0026-1394/27/4/005, 
     parameters from10.1103/PhysRevLett.74.1586.
     '''
-    rm = 0.29683e-9/Boh2m # position of min of V(r) : equilibrium length \approx 2.96 Angestrom
+    rm = 0.29683e-9/Boh2m # position of min of V(r) : equilibrium length \approx 2.96 Angstrom
     eps = 10.956 * K2Har # epsilon /k_B: reduction factor of potential \approx well depth = 3.32e-5 hartree
     A = 1.86924404e5
     alpha = 10.5717543
