@@ -38,9 +38,13 @@ class TBR(object):
         self.mu0 = np.sqrt(self.m1*self.m2*self.m3/self.mtot)
         self.C1 = self.m1/(self.m1 + self.m2)
         self.C2 = self.m2/(self.m1 + self.m2)
+    
+    def set_attrs(self):
+        self.delta_e = [np.nan]
+        self.delta_l = [np.nan]
+        self.wn = [np.nan]
+        self.t = [np.nan]*2
 
-    def set_t0(self):
-        self.t = [0.]*2
 
     def iCond(self):
         '''
@@ -107,16 +111,16 @@ class TBR(object):
         self.rejected = 0
         if self.R < self.b0:
             self.rejected = self.rejected+1
-            self.set_t0()
         elif abs(self.v12(r12_0)) > 1e-2*self.E0:
             self.rejected = self.rejected+1
-            self.set_t0()
         elif abs(self.v23(r23_0)) > 1e-2*self.E0:
             self.rejected = self.rejected+1
-            self.set_t0()
         elif abs(self.v31(r31_0)) > 1e-2*self.E0:
             self.rejected = self.rejected+1
-            self.set_t0()
+        
+        # Set attributes to NaN if rejected
+        if self.rejected ==1:
+            self.set_attrs()
 
         return self.rho6D_0, self.P6D_0
         
@@ -201,8 +205,8 @@ class TBR(object):
         x = self.wn[:6] #rho1, rho2
         En, Vn, Kn, Ln = util.hamiltonian(self,self.wn)
 
-        self.delta_e = En[-1] - En[0] # Energy difference
-        self.delta_l = Ln[-1] - Ln[0] # Momentum difference
+        self.delta_e = np.abs(En[-1] - En[0]) # Energy difference
+        self.delta_l = np.abs(Ln[-1] - Ln[0]) # Momentum difference
         if self.delta_e > 1e-5:
             print(f'Energy not conserved less than 1e-5: {self.delta_e}.')
             self.rejected=1
@@ -315,7 +319,7 @@ def runN(n_traj,input_dict, mode = 'parallel',cpus=os.cpu_count(), attrs = None,
     long_out, string (optional)
         path to long output file. Store extra data here.
     Returns:
-    df, pandas dataframe
+    full, pandas dataframe
         long output with one line per trajectory
     counts, pandas dataframe
         short output for analysis
@@ -337,15 +341,16 @@ def runN(n_traj,input_dict, mode = 'parallel',cpus=os.cpu_count(), attrs = None,
             else:
                 output = runOneT(**input_dict)
             result.append(output)
-    df = pd.DataFrame(result)
-    counts = df.loc[:,:'rej'].groupby(['e','b']).sum() # sum counts
+    full = pd.DataFrame(result)
+    cols = ['e','b','r12','r23','r31','nd','nc','rej']
+    counts = full.loc[:,cols].groupby(['e','b']).sum() # sum counts
     counts['time'] = time.time() - t0
     # Long output to track attributes of each trajectory
     if long_out:
-        df.to_csv(long_out, mode = 'a',
+        full.to_csv(long_out, mode = 'a', index=False,
                 header = os.path.isfile(long_out) == False or os.path.getsize(long_out) == 0)
     # Short output for Py3BR.analysis files
     if short_out:
         counts.to_csv(short_out, mode = 'a',
                     header = os.path.isfile(short_out) == False or os.path.getsize(short_out) == 0)
-    return df, counts
+    return full, counts
