@@ -135,7 +135,7 @@ def cross_section(input, bmax_AB, bmax_BB, mode = 'w', sep = None, output = None
             sigma.to_csv(f'{output}', mode = mode, sep = sep)
         else:
             sigma.to_csv(f'{output}', mode = mode)
-    return sigma
+    return sigma.reset_index()
 
 def k3(input,mu0,  bmax_AB, bmax_BB,mode = 'w',sep = None, output = None):
     '''
@@ -161,12 +161,12 @@ def k3(input,mu0,  bmax_AB, bmax_BB,mode = 'w',sep = None, output = None):
             rate.to_csv(f'{output}', mode = mode, sep = sep)
         else:
             rate.to_csv(f'{output}', mode = mode)
-    return rate
+    return rate.reset_index()
 
 if __name__ == '__main__':
     mu0 = 6504.062019864895 # PHe
     # mu0 = 120631.7241 #SrCs
-    bmax_AB,bmax_BB=bmax('../example/PHe/results/short.txt',tolerance_AB=0,n_AB=2,tolerance_BB=0,n_BB=2)
+    bmax_AB,bmax_BB=bmax('../example/PHe/results/short.txt',tol_AB=0,n_AB=2,tol_BB=0,n_BB=2)
     rate = k3('../example/PHe/results/short.txt',mu0,bmax_AB=bmax_AB, bmax_BB=bmax_BB)
    
     # # Plot opacities
@@ -186,14 +186,14 @@ if __name__ == '__main__':
     
     # Plot rates
     plt.figure(3)
-    plt.errorbar(rate.reset_index(0)['e'],rate.reset_index(0)['k3_AB'],rate.reset_index(0)['k3_AB_err'], capsize = 3,fmt = '_')
+    plt.errorbar(rate['e'],rate['k3_AB'],rate['k3_AB_err'], capsize = 3,fmt = '_')
     plt.xscale('log')
     plt.yscale('log')
     plt.xlabel(r'E$(E_H)$')
     plt.ylabel(r'$k_3 (cm^6/s)$')
     plt.title('Rate AB')
     plt.figure(4)
-    plt.errorbar(rate.reset_index(0)['e'],rate.reset_index(0)['k3_BB'],rate.reset_index(0)['k3_BB_err'],  capsize = 3,fmt = '_')
+    plt.errorbar(rate['e'],rate['k3_BB'],rate['k3_BB_err'],  capsize = 3,fmt = '_')
     plt.xscale('log')
     plt.yscale('log')
     plt.title('Rate BB')
