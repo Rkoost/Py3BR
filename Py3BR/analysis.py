@@ -40,7 +40,7 @@ def opacity(input, mode = 'a', sep = None, output = None):
             opacity.to_csv(f'{output}', mode = mode)
     return opacity
 
-def bmax(input, tol_AB = 1e-3, n_AB = 3, tol_BB = 1e-3, n_BB=3):
+def bmax(input, tol_AB = 1e-3, n_AB = 2, tol_BB = 1e-3, n_BB=2):
     '''
     Function to suggest bmax for each collision energy. Inspect each value against the opacity
     function to ensure a good bmax, which should capture most non-zero probabilities. 
@@ -66,16 +66,23 @@ def bmax(input, tol_AB = 1e-3, n_AB = 3, tol_BB = 1e-3, n_BB=3):
     opac = opacity(input).reset_index(level=1)
     # Find bmax of pAB for each energy
     bmax_AB = {}
+    # Iterate over energy
     for i in opac.index.unique():
         try:
             df = opac.loc[i].copy()
-            data = np.where(df['pAB'].values<=tol_AB)[0]
+            # Find indices satisfying tolerance
+            data = np.where(df['pAB'].values<=tol_AB)[0] 
             for k, g in groupby(enumerate(data), lambda ix:ix[0]-ix[1]):
                 # Find lists of consecutive indices satisfying P(b)<tolerance
                 bl_AB = list(map(itemgetter(1), g))
+                # If number of consecutive indices > n_AB
                 if len(bl_AB) >= n_AB: 
+                    # Use first instance
                     bmax_AB[i] = df['b'].values[bl_AB[0]]
                     break
+                # If not found, use last impact parameter
+                else:
+                    bmax_AB[i] = df['b'].values[-1]
         except IndexError:
             print(f"Max impact parameter not reached for E = {i} K. Increase impact parameter until P_AB(b) <= {tolerance_AB}, {n_AB} times in a row.")
 
@@ -90,6 +97,9 @@ def bmax(input, tol_AB = 1e-3, n_AB = 3, tol_BB = 1e-3, n_BB=3):
                 if len(bl_BB) >= n_BB:
                     bmax_BB[i] = df['b'].values[bl_BB[0]]
                     break
+                # If not found, use last impact parameter
+                else:
+                    bmax_BB[i] = df['b'].values[-1]
         except IndexError:
                 print(f"Max impact parameter not reached for E = {i} K. Increase impact parameter until P_BB(b) <= {tolerance_BB}, {n_BB} times in a row.")
     return bmax_AB,bmax_BB
@@ -135,7 +145,7 @@ def cross_section(input, bmax_AB, bmax_BB, mode = 'w', sep = None, output = None
             sigma.to_csv(f'{output}', mode = mode, sep = sep)
         else:
             sigma.to_csv(f'{output}', mode = mode)
-    return sigma.reset_index()
+    return sigma
 
 def k3(input,mu0,  bmax_AB, bmax_BB,mode = 'w',sep = None, output = None):
     '''
@@ -161,14 +171,15 @@ def k3(input,mu0,  bmax_AB, bmax_BB,mode = 'w',sep = None, output = None):
             rate.to_csv(f'{output}', mode = mode, sep = sep)
         else:
             rate.to_csv(f'{output}', mode = mode)
-    return rate.reset_index()
+    return rate
 
 if __name__ == '__main__':
     mu0 = 6504.062019864895 # PHe
     # mu0 = 120631.7241 #SrCs
     bmax_AB,bmax_BB=bmax('../example/PHe/results/short.txt',tol_AB=0,n_AB=2,tol_BB=0,n_BB=2)
+    sigma = cross_section('../example/PHe/results/short.txt',bmax_AB=bmax_AB, bmax_BB=bmax_BB)
     rate = k3('../example/PHe/results/short.txt',mu0,bmax_AB=bmax_AB, bmax_BB=bmax_BB)
-   
+    
     # # Plot opacities
     # opac = opac.reset_index(level=1)
     # for i in opac.index.unique()[:5]:
