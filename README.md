@@ -21,7 +21,7 @@ pip install .
 All input parameters are in atomic units, except for collision energy which is in Kelvin. 
 
 ### Output
-The collision energy is reported in Kelvin, just as in the input. All other attributes are in atomic units. The opacity function is a unitless probability, the cross section is in $`\textrm{cm^5}`$, and the three-body recombination rate is in $`\textrm{cm^6/s}`$.
+The collision energy is reported in Kelvin, just as in the input. All other attributes are in atomic units. The opacity function is a unitless probability, the cross section is in $`\mathrm{cm^5}`$, and the three-body recombination rate is in $`\mathrm{cm^6/s}`$.
 
 ## License
  
