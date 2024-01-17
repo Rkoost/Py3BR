@@ -342,7 +342,7 @@ def runN(n_traj,input_dict, mode = 'parallel',cpus=os.cpu_count(), attrs = None,
                 output = runOneT(**input_dict)
             result.append(output)
     full = pd.DataFrame(result)
-    cols = ['e','b','r12','r23','r31','nd','nc','rej']
+    cols = ['e','b','n12','n23','n31','nd','nc','rej']
     counts = full.loc[:,cols].groupby(['e','b']).sum() # sum counts
     counts['time'] = time.time() - t0
     # Long output to track attributes of each trajectory

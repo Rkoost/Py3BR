@@ -28,9 +28,9 @@ def get_results(traj, *args):
     '''
     results = {'e': traj.E0/K2Har,
     'b': traj.b0,
-    'r12': traj.count[0],
-    'r23': traj.count[1],
-    'r31': traj.count[2],
+    'n12': traj.count[0],
+    'n23': traj.count[1],
+    'n31': traj.count[2],
     'nd': traj.count[3],
     'nc': traj.count[4],
     'rej': traj.rejected}
