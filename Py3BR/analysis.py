@@ -15,7 +15,7 @@ def opacity(input, mode = 'a', sep = None, output = None):
     Input Parameters:
     input, str
         Path to input file. Should be in the form of short output from Py3BR, 
-        with header (e,b,r12,r23,r31,nd,nc,rej,time)
+        with header (e,b,n12,n23,n31,nd,nc,rej,time)
     sep, str (optional)
         delimeter, input to pandas read_csv()
     output, str (optional)
@@ -25,13 +25,13 @@ def opacity(input, mode = 'a', sep = None, output = None):
         df = pd.read_csv(input, sep = sep)
     else:
         df = pd.read_csv(input)
-    cols = ['e','b','r12','r23','r31','nd','nc','rej']
+    cols = ['e','b','n12','n23','n31','nd','nc','rej']
     stats = df.loc[:,cols].groupby(['e','b']).sum()
     nTraj = stats.sum(axis=1) - stats['rej']
-    pAB = (stats['r23']+stats['r31'])/nTraj
-    pAB_err = np.sqrt(stats['r23'] + stats['r31'])/nTraj*np.sqrt((nTraj-(stats['r23']+stats['r31']))/nTraj)
-    pBB = (stats['r12'])/nTraj
-    pBB_err = np.sqrt(stats['r12'])/nTraj*np.sqrt((nTraj-(stats['r12']))/nTraj)
+    pAB = (stats['n23']+stats['n31'])/nTraj
+    pAB_err = np.sqrt(stats['n23'] + stats['n31'])/nTraj*np.sqrt((nTraj-(stats['n23']+stats['n31']))/nTraj)
+    pBB = (stats['n12'])/nTraj
+    pBB_err = np.sqrt(stats['n12'])/nTraj*np.sqrt((nTraj-(stats['n12']))/nTraj)
     opacity = pd.DataFrame([pAB,pAB_err,pBB,pBB_err], index=['pAB','pAB_err','pBB','pBB_err']).T
     if output:
         if sep:
@@ -40,15 +40,15 @@ def opacity(input, mode = 'a', sep = None, output = None):
             opacity.to_csv(f'{output}', mode = mode)
     return opacity
 
-def bmax(input, tol_AB = 1e-3, n_AB = 2, tol_BB = 1e-3, n_BB=2):
+def bmax(input, tol_AB = 1e-3, n_AB = 3, tol_BB = 1e-3, n_BB=3):
     '''
     Function to suggest bmax for each collision energy. Inspect each value against the opacity
     function to ensure a good bmax, which should capture most non-zero probabilities. 
-    bmax is found by P(bmax) <= tolerance, such that all P(b) up to P(bmax + n-1) <= tolerance also. 
+    bmax is found by P(b=bmax)/P(b=0) <= tolerance, such that all P(b) up to P(b=bmax+n-1)/P(b=0) <= tolerance also. 
     Input Parameters:
     input, str
         Path to input file. Should be in the form of short output from Py3BR, 
-        with header (e,b,r12,r23,r31,nd,nc,rej,time)
+        with header (e,b,n12,n23,n31,nd,nc,rej,time)
     tol_AB, float (optional)
         Minimum value for P_AB(b), should be close to 0.
     n_AB, int (optional)
@@ -71,7 +71,7 @@ def bmax(input, tol_AB = 1e-3, n_AB = 2, tol_BB = 1e-3, n_BB=2):
         try:
             df = opac.loc[i].copy()
             # Find indices satisfying tolerance
-            data = np.where(df['pAB'].values<=tol_AB)[0] 
+            data = np.where((df['pAB']/(df['pAB'].loc[df['b']==0])).values<=tol_AB)[0] 
             for k, g in groupby(enumerate(data), lambda ix:ix[0]-ix[1]):
                 # Find lists of consecutive indices satisfying P(b)<tolerance
                 bl_AB = list(map(itemgetter(1), g))
@@ -84,14 +84,14 @@ def bmax(input, tol_AB = 1e-3, n_AB = 2, tol_BB = 1e-3, n_BB=2):
                 else:
                     bmax_AB[i] = df['b'].values[-1]
         except IndexError:
-            print(f"Max impact parameter not reached for E = {i} K. Increase impact parameter until P_AB(b) <= {tolerance_AB}, {n_AB} times in a row.")
+            print(f"Max impact parameter not reached for E = {i} K. Increase impact parameter until P_AB(b) <= {tol_AB}, {n_AB} times in a row.")
 
     # Find bmax of pBB for each energy
     bmax_BB = {}
     for i in opac.index.unique():
         try:
             df = opac.loc[i].copy()
-            data = np.where(df['pBB'].values<=tol_BB)[0]
+            data = np.where((df['pBB']/(df['pBB'].loc[df['b']==0])).values<=tol_BB)[0]
             for k, g in groupby(enumerate(data), lambda ix:ix[0]-ix[1]):
                 bl_BB = list(map(itemgetter(1), g))
                 if len(bl_BB) >= n_BB:
@@ -101,7 +101,7 @@ def bmax(input, tol_AB = 1e-3, n_AB = 2, tol_BB = 1e-3, n_BB=2):
                 else:
                     bmax_BB[i] = df['b'].values[-1]
         except IndexError:
-                print(f"Max impact parameter not reached for E = {i} K. Increase impact parameter until P_BB(b) <= {tolerance_BB}, {n_BB} times in a row.")
+                print(f"Max impact parameter not reached for E = {i} K. Increase impact parameter until P_BB(b) <= {tol_BB}, {n_BB} times in a row.")
     return bmax_AB,bmax_BB
 
 def cross_section(input, bmax_AB, bmax_BB, mode = 'w', sep = None, output = None):
@@ -111,7 +111,7 @@ def cross_section(input, bmax_AB, bmax_BB, mode = 'w', sep = None, output = None
     Input Parameters:
     input, str
         Path to input file. Should be in the form of short output from Py3BR, 
-        with header (e,b,r12,r23,r31,nd,nc,rej,time)
+        with header (e,b,n12,n23,n31,nd,nc,rej,time)
     bmax_AB, dict
         Dictionary mapping bmax of P_AB for each energy ({Ec:bmax})
     bmax_BB, dict
@@ -154,7 +154,7 @@ def k3(input,mu0,  bmax_AB, bmax_BB,mode = 'w',sep = None, output = None):
     Input Parameters:
     input, str
         Path to input file. Should be in the form of short output from Py3BR, 
-        with header (e,b,r12,r23,r31,nd,nc,rej,time)
+        with header (e,b,n12,n23,n31,nd,nc,rej,time)
     sep, str (optional)
         delimeter, input to pandas read_csv()
     output, str (optional)
@@ -174,21 +174,23 @@ def k3(input,mu0,  bmax_AB, bmax_BB,mode = 'w',sep = None, output = None):
     return rate
 
 if __name__ == '__main__':
-    mu0 = 6504.062019864895 # PHe
-    # mu0 = 120631.7241 #SrCs
-    bmax_AB,bmax_BB=bmax('../example/PHe/results/short.txt',tol_AB=0,n_AB=2,tol_BB=0,n_BB=2)
-    sigma = cross_section('../example/PHe/results/short.txt',bmax_AB=bmax_AB, bmax_BB=bmax_BB)
-    rate = k3('../example/PHe/results/short.txt',mu0,bmax_AB=bmax_AB, bmax_BB=bmax_BB)
-    
+    # mu0 = 6504.062019864895 # PHe
+    mu0 = 120631.7241 #SrCs
+    opac = opacity('../example/Sr+Cs/results/short.txt')
+    bmax_AB,bmax_BB=bmax('../example/Sr+Cs/results/short.txt',tol_AB=1e-2,n_AB=2,tol_BB=1e-3,n_BB=1)
+    bmax_AB[40000]=39.1
+    sigma = cross_section('../example/Sr+Cs/results/short.txt',bmax_AB=bmax_AB, bmax_BB=bmax_BB).reset_index()
+    rate = k3('../example/Sr+Cs/results/short.txt',mu0,bmax_AB=bmax_AB, bmax_BB=bmax_BB).reset_index()
     # # Plot opacities
-    # opac = opac.reset_index(level=1)
-    # for i in opac.index.unique()[:5]:
-    # i=1000
-    # df = opac.loc[i]
-    # plt.figure(1)
-    # plt.errorbar(df['b'], df['pAB'], df['pAB_err'], fmt='.',label = f'{i} K')
-    # plt.legend()
-    # plt.title(r'$P_{AB}$')
+    opac = opac.reset_index(level=1)
+    el = [20000,40000,65000]
+    for i in el:
+        df = opac.loc[i]
+        plt.figure(1)
+        plt.scatter(df['b'], df['pAB'], marker='.',label = f'{i} K')
+        plt.vlines(bmax_AB[i],0,df['pAB'].values.max())
+    plt.legend()
+    plt.title(r'$P_{AB}$')
     # plt.figure(2)
     # plt.errorbar(df['b'], df['pBB'], df['pBB_err'], fmt='.', label = f'{i} K')
     # plt.legend()
@@ -197,12 +199,13 @@ if __name__ == '__main__':
     
     # Plot rates
     plt.figure(3)
-    plt.errorbar(rate['e'],rate['k3_AB'],rate['k3_AB_err'], capsize = 3,fmt = '_')
+    plt.errorbar(rate['e'],rate['k3_AB'],rate['k3_AB_err'], capsize = 3,fmt = '_', label='py')
     plt.xscale('log')
     plt.yscale('log')
     plt.xlabel(r'E$(E_H)$')
     plt.ylabel(r'$k_3 (cm^6/s)$')
     plt.title('Rate AB')
+    plt.legend()
     plt.figure(4)
     plt.errorbar(rate['e'],rate['k3_BB'],rate['k3_BB_err'],  capsize = 3,fmt = '_')
     plt.xscale('log')
