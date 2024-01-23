@@ -50,13 +50,13 @@ def bmax(input, tol_AB = 1e-3, n_AB = 3, tol_BB = 1e-3, n_BB=3):
         Path to input file. Should be in the form of short output from Py3BR, 
         with header (e,b,n12,n23,n31,nd,nc,rej,time)
     tol_AB, float (optional)
-        Minimum value for P_AB(b), should be close to 0.
+        Minimum value for P_AB(b=bmax)/P_AB(b=0), should be close to 0.
     n_AB, int (optional)
-        number of times in a row `P_AB(b) <= tolerance_AB` is satisfied
+        number of times in a row tol_AB is satisfied
     tol_BB, float (optional)
-        Minimum value of P_BB(b), should be close to 0.
+        Minimum value of P_BB(b=bmax)/P_BB(b=0), should be close to 0.
     n_BB, int (optional)
-        number of times in a row `P_BB(b) <= tolerance_BB` is satisfied
+        number of times in a row tol_BB is satisfied
     Outputs:
     bmax_AB, dict
         Dictionary mapping bmax of P_AB for each energy ({Ec:bmax})
@@ -72,6 +72,9 @@ def bmax(input, tol_AB = 1e-3, n_AB = 3, tol_BB = 1e-3, n_BB=3):
             df = opac.loc[i].copy()
             # Find indices satisfying tolerance
             data = np.where((df['pAB']/(df['pAB'].loc[df['b']==0])).values<=tol_AB)[0] 
+            # If data is empty
+            if (len(data) == 0):
+                bmax_AB[i] = df['b'].values[-1]
             for k, g in groupby(enumerate(data), lambda ix:ix[0]-ix[1]):
                 # Find lists of consecutive indices satisfying P(b)<tolerance
                 bl_AB = list(map(itemgetter(1), g))
@@ -84,7 +87,7 @@ def bmax(input, tol_AB = 1e-3, n_AB = 3, tol_BB = 1e-3, n_BB=3):
                 else:
                     bmax_AB[i] = df['b'].values[-1]
         except IndexError:
-            print(f"Max impact parameter not reached for E = {i} K. Increase impact parameter until P_AB(b) <= {tol_AB}, {n_AB} times in a row.")
+            print(f"Max impact parameter not reached for E = {i} K. Increase impact parameter until P_AB(b=bmax)/P_AB(b=0) <= {tol_AB}, {n_AB} times in a row.")
 
     # Find bmax of pBB for each energy
     bmax_BB = {}
@@ -92,6 +95,9 @@ def bmax(input, tol_AB = 1e-3, n_AB = 3, tol_BB = 1e-3, n_BB=3):
         try:
             df = opac.loc[i].copy()
             data = np.where((df['pBB']/(df['pBB'].loc[df['b']==0])).values<=tol_BB)[0]
+            # If data is empty
+            if (len(data) == 0):
+                bmax_BB[i] = df['b'].values[-1]
             for k, g in groupby(enumerate(data), lambda ix:ix[0]-ix[1]):
                 bl_BB = list(map(itemgetter(1), g))
                 if len(bl_BB) >= n_BB:
@@ -101,7 +107,7 @@ def bmax(input, tol_AB = 1e-3, n_AB = 3, tol_BB = 1e-3, n_BB=3):
                 else:
                     bmax_BB[i] = df['b'].values[-1]
         except IndexError:
-                print(f"Max impact parameter not reached for E = {i} K. Increase impact parameter until P_BB(b) <= {tol_BB}, {n_BB} times in a row.")
+                print(f"Max impact parameter not reached for E = {i} K. Increase impact parameter until P_BB(b=bmax)/P_BB(b=0) <= {tol_BB}, {n_BB} times in a row.")
     return bmax_AB,bmax_BB
 
 def cross_section(input, bmax_AB, bmax_BB, mode = 'w', sep = None, output = None):
