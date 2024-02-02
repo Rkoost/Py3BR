@@ -38,10 +38,12 @@ def get_results(traj, *args):
         results[arg] = getattr(traj,arg)
     return results
 
-def hamiltonian(traj,w):
+def hamiltonian(traj):
     '''
     Calculate energies and momentum
     '''
+    w = traj.wn
+    
     rho1x, rho1y, rho1z, rho2x, rho2y, rho2z, \
         p1x, p1y, p1z, p2x, p2y, p2z = w
     

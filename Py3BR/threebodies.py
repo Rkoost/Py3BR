@@ -203,7 +203,7 @@ class TBR(object):
         self.wn = wsol.y
         self.t = wsol.t
         x = self.wn[:6] #rho1, rho2
-        En, Vn, Kn, Ln = util.hamiltonian(self,self.wn)
+        En, Vn, Kn, Ln = util.hamiltonian(self)
 
         self.delta_e = np.abs(En[-1] - En[0]) # Energy difference
         self.delta_l = np.abs(Ln[-1] - Ln[0]) # Momentum difference
