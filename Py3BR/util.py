@@ -26,14 +26,14 @@ def get_results(traj, *args):
     args are strings representing attributes of the trajectory,
     if you need more than the count vector.
     '''
-    results = {'e': traj.E0/K2Har,
-    'b': traj.b0,
-    'n12': traj.count[0],
-    'n23': traj.count[1],
-    'n31': traj.count[2],
-    'nd': traj.count[3],
-    'nc': traj.count[4],
-    'rej': traj.rejected}
+    results = {'e': f'{traj.E0/K2Har:.2f}',
+    'b': f'{traj.b0:.2f}',
+    'n12': int(traj.count[0]),
+    'n23': int(traj.count[1]),
+    'n31': int(traj.count[2]),
+    'nd':  int(traj.count[3]),
+    'nc':  int(traj.count[4]),
+    'rej': int(traj.rejected)}
     for arg in args:
         results[arg] = getattr(traj,arg)
     return results
@@ -43,7 +43,7 @@ def hamiltonian(traj):
     Calculate energies and momentum
     '''
     w = traj.wn
-    
+
     rho1x, rho1y, rho1z, rho2x, rho2y, rho2z, \
         p1x, p1y, p1z, p2x, p2y, p2z = w
     
@@ -55,7 +55,7 @@ def hamiltonian(traj):
             0.5*(p2x**2 + p2y**2 + p2z**2)/traj.mu312
     
     # Potential energy
-    epot = traj.v12(r12) + traj.v23(r23) + traj.v31(r31)    
+    epot = np.asarray(traj.v12(r12)) + np.asarray(traj.v23(r23)) + np.asarray(traj.v31(r31))    
     # Total energy
     etot = ekin + epot    
     # Keep track of angular momenta
