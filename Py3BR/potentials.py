@@ -92,18 +92,34 @@ def He2_dV(x):
     c10 = 0.17151143
     D = 1.438
     R = x/rm
-    if R < D:
-        dV = 1/rm*eps*(A*(-alpha + 2*beta*R)*np.exp(-alpha*R + beta*R**2) - 
+    # Piecewise needs to be run element-wise
+    if isinstance(x,list) or isinstance(x,np.ndarray):
+        dV = []
+        for i in R:
+            if i < D:
+                dV.append(1/rm*eps*(A*(-alpha + 2*beta*i)*np.exp(-alpha*i + beta*i**2) - 
+                        (2*D*i**(-2)*(D/i-1)*np.exp(-(D/i-1)**2))*
+                        (c6*i**(-6) + c8*i**(-8) + c10*i**(-10)) + 
+                        (6*c6*i**(-7) + 8*c8*i**(-9) + 10*c10*i**(-11))*np.exp(-(D/i-1)**2)))
+            else:
+                dV.append(1/rm*eps*(A*(-alpha + 2*beta*i)*np.exp(-alpha*i + beta*i**2) + 
+                        (6*c6*i**(-7) + 8*c8*i**(-9) + 10*c10*i**(-11))))
+    else:
+        if R < D:
+            dV = 1/rm*eps*(A*(-alpha + 2*beta*R)*np.exp(-alpha*R + beta*R**2) - 
                         (2*D*R**(-2)*(D/R-1)*np.exp(-(D/R-1)**2))*
                         (c6*R**(-6) + c8*R**(-8) + c10*R**(-10)) + 
                         (6*c6*R**(-7) + 8*c8*R**(-9) + 10*c10*R**(-11))*np.exp(-(D/R-1)**2))
             
-    else:
-        dV = 1/rm*eps*(A*(-alpha + 2*beta*R)*np.exp(-alpha*R + beta*R**2) + 
+        else:
+            dV = 1/rm*eps*(A*(-alpha + 2*beta*R)*np.exp(-alpha*R + beta*R**2) + 
                         (6*c6*R**(-7) + 8*c8*R**(-9) + 10*c10*R**(-11)))
     return dV
 
 if __name__ == '__main__':
-    v= lambda x: LJ(x)
-    x = np.linspace(1,10,10)
-    print(v(x))
+    import matplotlib.pyplot as plt
+    v = lambda x: He2_V(x)
+    x = np.linspace(1,10,100)
+    print(type(v(x)))
+    plt.plot(x,v(x))
+    plt.show()
