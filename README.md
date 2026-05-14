@@ -10,8 +10,10 @@ To download, run
 `git clone https://github.com/Rkoost/Py3BR`
 
 I recommend using a fresh virtual environment. Once activated, run 
+
 `cd Py3BR`
-`pip install -e . ` 
+
+`pip install -e .` 
 
 ## Theory
 We transform the three-dimensional scattering problem into a six-dimensional hyperspherical coordinate space, which translates the problem of three scattering particles to just one. In this space, the scattering cross section is clearly defined and we generate an accurate sampling of initial conditions for the simulations. The trajectories are propagated using Hamilton's equations of motion, after which bound states are identified. The number of trajectories ending in each of the four possibilities is counted, and written to the output file. 
