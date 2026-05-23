@@ -1,23 +1,44 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from tbr.simulator import get_distances_from_solution
 
+def plot_distances(solution, masses, savefig=None):
+    m1, m2, m3 = masses
 
-def plot_distances(data, seed=None, E0=None, b0=None, savefig=None):
-    """
-    Plots the inter-particle distances (r12, r23, r31) over time.
-    Assumes data columns: [Time, r12, r23, r31, ...]
-    """
+    n_res = solution['n_res']
+    times = solution['times']
+    rho_vec = solution['positions_rho']
+    p_vec = solution['momenta_p']
+
+    r12, r23, r31 = get_distances_from_solution(
+        np.vstack([rho_vec, p_vec]), m1, m2
+    )
+
+    data = np.vstack([
+            solution['times'], 
+            r12, r23, r31,
+            solution['positions_rho'], 
+            solution['momenta_p']
+        ]).T
+    
     time = data[:, 0]
     r12  = data[:, 1]
     r23  = data[:, 2]
     r31  = data[:, 3]
 
+    if np.any(n_res[0:3] == 1):
+        product = 'Reaction!'
+    elif n_res[3] == 1:
+        product = 'No reaction!'
+    else:
+        product = 'Complex!'
+    
     plt.figure(figsize=(10, 6))
     plt.plot(time, r12, label='$r_{12}$', color='blue')
     plt.plot(time, r23, label='$r_{23}$', color='green')
     plt.plot(time, r31, label='$r_{31}$', color='red')
     
-    plt.title(f"Trajectory Distances") #(Seed: {seed})\n$E_0={E0}, b={b0}$")
+    plt.title(f"Trajectory Result: {product}") #(Seed: {seed})\n$E_0={E0}, b={b0}$")
     plt.xlabel("Time (a.u.)")
     plt.ylabel("Distance (a.u.)")
     plt.axhline(0, color='black', linewidth=0.5)
@@ -25,24 +46,33 @@ def plot_distances(data, seed=None, E0=None, b0=None, savefig=None):
     plt.grid(True, alpha=0.3)
     if savefig:
         plt.savefig(f'{savefig}.png', dpi=300)
+    plt.show()
 
+def plot_3d_motion(solution, masses, savefig=None):
+    m1, m2, m3 = masses
 
-def plot_3d_motion(data, m1, m2, m3, seed, savefig=None):
-    time=data[:,0]
-    rho1 = data[:,4:7]
-    rho2 = data[:,7:10]
-
-    # print(rho1[0], rho2[0])
+    n_res = solution['n_res']
+    rho_vec = solution['positions_rho']
+    
+    rho1 = rho_vec[:3]
+    rho2 = rho_vec[3:]
 
     C1 = m1/(m1+m2)
     C2 = m2/(m1+m2)
     mtot = m1 + m2 + m3
     mu3 = m3/mtot
     mu12 = (m1+m2)/mtot
+    
+    r1 = (-C2*rho1 - mu3*rho2)
+    r2 = (C1*rho1 - mu3*rho2)
+    r3 = (mu12*rho2)
 
-    r1 = (-C2*rho1 - mu3*rho2).T
-    r2 = (C1*rho1 - mu3*rho2).T
-    r3 = (mu12*rho2).T
+    if np.any(n_res[0:3] == 1):
+        product = 'Reaction!'
+    elif n_res[3] == 1:
+        product = 'No reaction!'
+    else:
+        product = 'Complex!'
 
     fig = plt.figure(figsize=(10,10))
     ax = fig.add_subplot(111, projection='3d')
@@ -65,7 +95,7 @@ def plot_3d_motion(data, m1, m2, m3, seed, savefig=None):
     ax.set_xlabel('X (Bohr)')
     ax.set_ylabel('Y (Bohr)')
     ax.set_zlabel('Z (Bohr)')
-    ax.set_title(f'3D Trajectory (Seed: {seed})')
+    ax.set_title(f'3D Trajectory Result: {product}')
     ax.legend()
     
     # Set equal aspect ratio 
@@ -89,23 +119,38 @@ def plot_3d_motion(data, m1, m2, m3, seed, savefig=None):
     plt.tight_layout()
     if savefig:
         plt.savefig(f'{savefig}.png', dpi=300)
+    plt.show()
 
-def plot_opac(df, energies, suffix='BB', fmt = '.', label = None, save_path=None):
-    # plt.figure()
+def plot_opac(opac_df, energies, suffix='AB', fmt = '.', label = None, save_path=None):
+    '''
+    Opacity plot 
+    Inputs:
+    opac_df (Pandas DataFrame), output of opacity()
+    energies (list), list of energies to plot 
+    suffix (str), 'AB' or 'AA' or any other process present in the 
+                   opacity DataFrame columns
+    fmt (str), marker type for matplotlib.pyplot.errorbar()
+    label (str), Custom label for each process/energy
+    save_path (str), Path to save the figure 
+    '''
     colors = plt.cm.viridis(np.linspace(0,1,len(energies)))
     
     for i, e_val in enumerate(energies):
-        subset = df[df['e'] == e_val].sort_values('b')
+        subset = opac_df[opac_df['e'] == e_val].sort_values('b')
 
         if subset.empty:
             print(f'Skipping E = {e_val}: No data found.')
             continue
+        if label:
+            plt.errorbar(subset['b'], subset[f'p_{suffix}'], yerr=subset[f'p_{suffix}_err'],
+                            fmt = fmt, capsize=3, label=f'{label}, E = {e_val} K', color = colors[i])
+        else:
+            plt.errorbar(subset['b'], subset[f'p_{suffix}'], yerr=subset[f'p_{suffix}_err'],
+                            fmt = fmt, capsize=3, label=f'{suffix}, E = {e_val} K', color = colors[i])
+
         
-        plt.errorbar(subset['b'], subset[f'p_{suffix}'], yerr=subset[f'p_{suffix}_err'],
-                        fmt = fmt, capsize=3, label=f'{label}, E = {e_val} K', color = colors[i])
-        
-        if f'bmax_{suffix}' in df.columns:
-            bmax = df[df['e'] == e_val].sort_values('b')[f'bmax_{suffix}'].values[0]
+        if f'bmax_{suffix}' in opac_df.columns:
+            bmax = opac_df[opac_df['e'] == e_val].sort_values('b')[f'bmax_{suffix}'].values[0]
             plt.axvline(bmax, 0, 1, color = colors[i])
     
     plt.xlabel('Impact Parameter ($a_0$)')
@@ -120,7 +165,7 @@ def plot_opac(df, energies, suffix='BB', fmt = '.', label = None, save_path=None
 
 
 
-def animate_3d_forces(result_dict, masses, dv_funcs, 
+def animate_3d_forces(solution, masses, dv_funcs, 
                       scale=2000, filename="trajectory_forces.mp4", 
                       fps=30, duration_seconds=10,
                       zoom=1.0,
@@ -129,7 +174,7 @@ def animate_3d_forces(result_dict, masses, dv_funcs,
     """
     Animates the 3D trajectory and force vectors.
     """
-    if not result_dict['success']:
+    if not solution['success']:
         print("Cannot animate: Trajectory was unsuccessful.")
         return
     
@@ -568,3 +613,92 @@ def plot_relative_e(result_dict, masses, vfuncs, title='Relative E'):
 #     plt.axis('equal') # Crucial to see true geometry
 #     plt.legend()
 #     plt.grid(True)
+
+
+# def plot_distances(data, seed=None, E0=None, b0=None, savefig=None):
+#     """
+#     Plots the inter-particle distances (r12, r23, r31) over time.
+#     Assumes data columns: [Time, r12, r23, r31, ...]
+#     """
+#     time = data[:, 0]
+#     r12  = data[:, 1]
+#     r23  = data[:, 2]
+#     r31  = data[:, 3]
+
+#     plt.figure(figsize=(10, 6))
+#     plt.plot(time, r12, label='$r_{12}$', color='blue')
+#     plt.plot(time, r23, label='$r_{23}$', color='green')
+#     plt.plot(time, r31, label='$r_{31}$', color='red')
+    
+#     plt.title(f"Trajectory Distances") #(Seed: {seed})\n$E_0={E0}, b={b0}$")
+#     plt.xlabel("Time (a.u.)")
+#     plt.ylabel("Distance (a.u.)")
+#     plt.axhline(0, color='black', linewidth=0.5)
+#     plt.legend()
+#     plt.grid(True, alpha=0.3)
+#     if savefig:
+#         plt.savefig(f'{savefig}.png', dpi=300)
+
+
+# def plot_3d_motion(data, m1, m2, m3, seed, savefig=None):
+#     time=data[:,0]
+#     rho1 = data[:,4:7]
+#     rho2 = data[:,7:10]
+
+#     # print(rho1[0], rho2[0])
+
+#     C1 = m1/(m1+m2)
+#     C2 = m2/(m1+m2)
+#     mtot = m1 + m2 + m3
+#     mu3 = m3/mtot
+#     mu12 = (m1+m2)/mtot
+
+#     r1 = (-C2*rho1 - mu3*rho2).T
+#     r2 = (C1*rho1 - mu3*rho2).T
+#     r3 = (mu12*rho2).T
+
+#     fig = plt.figure(figsize=(10,10))
+#     ax = fig.add_subplot(111, projection='3d')
+
+#     # Time trace
+#     ax.plot(r1[0], r1[1], r1[2], label=f'Particle 1', color='blue', alpha = 0.6)
+#     ax.plot(r2[0], r2[1], r2[2], label=f'Particle 2', color='red', alpha = 0.6)
+#     ax.plot(r3[0], r3[1], r3[2], label=f'Particle 3', color='green', alpha = 0.6)
+
+#     # Start points (Circles)
+#     ax.scatter(r1[0,0], r1[1,0], r1[2,0], color='blue', marker='o', s=50)
+#     ax.scatter(r2[0,0], r2[1,0], r2[2,0], color='red', marker='o', s=50)
+#     ax.scatter(r3[0,0], r3[1,0], r3[2,0], color='green', marker='o', s=50)
+    
+#     # End points (X)
+#     ax.scatter(r1[0,-1], r1[1,-1], r1[2,-1], color='blue', marker='x', s=50)
+#     ax.scatter(r2[0,-1], r2[1,-1], r2[2,-1], color='red', marker='x', s=50)
+#     ax.scatter(r3[0,-1], r3[1,-1], r3[2,-1], color='green', marker='x', s=50)
+    
+#     ax.set_xlabel('X (Bohr)')
+#     ax.set_ylabel('Y (Bohr)')
+#     ax.set_zlabel('Z (Bohr)')
+#     ax.set_title(f'3D Trajectory (Seed: {seed})')
+#     ax.legend()
+    
+#     # Set equal aspect ratio 
+#     # Calculate bounds
+#     all_x = np.concatenate((r1[0], r2[0], r3[0]))
+#     all_y = np.concatenate((r1[1], r2[1], r3[1]))
+#     all_z = np.concatenate((r1[2], r2[2], r3[2]))
+    
+#     max_range = np.array([all_x.max()-all_x.min(), 
+#                           all_y.max()-all_y.min(), 
+#                           all_z.max()-all_z.min()]).max()/2.0
+    
+#     mid_x = (all_x.max()+all_x.min())*0.5
+#     mid_y = (all_y.max()+all_y.min())*0.5
+#     mid_z = (all_z.max()+all_z.min())*0.5
+    
+#     ax.set_xlim(mid_x - max_range, mid_x + max_range)
+#     ax.set_ylim(mid_y - max_range, mid_y + max_range)
+#     ax.set_zlim(mid_z - max_range, mid_z + max_range)
+    
+#     plt.tight_layout()
+#     if savefig:
+#         plt.savefig(f'{savefig}.png', dpi=300)
