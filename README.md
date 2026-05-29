@@ -84,11 +84,14 @@ From the resulting statistics, it is straightforward to compute the scattering o
 From the energy-dependent rate, the thermal rate coefficient is calculated over the three-body Maxwell-Boltzmann energy distribution using the function `thermal_rate()`.
 
 ## Related Publications
-- Py3BR
-- Sulfur
-- He+ 
-- Halogens
-- Dan's ML paper
+1. Koots R, Wang Y, Mirahmadi M, Pérez‐Ríos J. Py3BR: A software for computing atomic three‐body recombination rates. <i>J Comput Chem.</i> 2024; 45(17):1505-1514. doi:10.1002/jcc.27341
+2. Koots R, Ding G, Pérez-Ríos J. Direct three-body atom recombination: Halogen atoms. J. Chem. Phys. 2025; 163 (2): 024307. doi: https://doi.org/10.1063/5.0275410
+3. Koots R, Brown G, Pérez-Ríos J. Sulfur recombination: A direct approach. J Phys Chem. 2024; 161(8):084302. doi: https://doi.org/10.1063/5.0222273
+4. Koots R, Mirahmadi M, Pérez-Ríos J. Direct three-body dynamics govern ion-atom recombination and barrierless termolecular reactions. Phys Chem Chem Phys. Published online 2026:10.1039.D6CP01349J. doi:10.1039/D6CP01349J
+
+
+
+
 ## License
  
 [MIT](https://choosealicense.com/licenses/mit/)
