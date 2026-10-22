@@ -30,7 +30,8 @@ dR0 = 0.1*R0
 #         masses=masses, E0=E0, R0=R0, v_funcs=v_funcs,
 #         dv_funcs=dv_funcs,
 #         summary_file='summary_results.csv',
-#         save_detailed=True 
+#         save_detailed=True,
+#         bare=True
 #     )
 # except RuntimeError as e:
 #     print(f'Multiprocessing error: {e}')
@@ -60,26 +61,54 @@ print(f'Running trajectory with seed {seed}...')
 b0 = 0 # Impact parameter
 task_data = m1, m2, m3, E0, b0, R0, v_funcs, dv_funcs, seed 
 
+# Bare coordinates
 t0 = time.time()
-solution = run_trajectory_worker(task_data=task_data)
+solution_bare = run_trajectory_worker(task_data=task_data, bare=True) # Default is bare=True
 tf = time.time()
-print(f'Trajectory run in {tf-t0} s')
-n_res = solution['n_res']
-times = solution['times']
-rho_vec = solution['positions_rho']
-p_vec = solution['momenta_p']
-if solution['success'] == True:
+print(f'Bare trajectory run in {tf-t0} s')
+
+n_res = solution_bare['n_res']
+times = solution_bare['times']
+rho_vec = solution_bare['positions_rho']
+p_vec = solution_bare['momenta_p']
+
+
+if solution_bare['success'] == True:
     r12, r23, r31 = get_distances_from_solution(
                 np.vstack([rho_vec, p_vec]), m1, m2
             )
 
     data_block = np.vstack([
-                solution['times'], 
+                solution_bare['times'], 
                 r12, r23, r31,
-                solution['positions_rho'], 
-                solution['momenta_p']
+                solution_bare['positions_rho'], 
+                solution_bare['momenta_p']
             ]).T
-    print(f'Result (n12, n23, n31, nd, nc): {n_res}')
-    plot_distances(solution, masses)
-    plot_3d_motion(solution, masses)
-    # plot_relative_e(solution, masses, v_funcs)
+    print(f'Result bare (n12, n23, n31, nd, nc): {n_res}')
+    plot_distances(solution_bare, masses)
+    plot_3d_motion(solution_bare, masses)
+
+# # Mass weighted coordinates
+# t0 = time.time()
+# solution_mw = run_trajectory_worker(task_data=task_data, bare=False)
+# tf = time.time()
+# print(f'MW trajectory run in {tf-t0} s')
+# n_res_mw = solution_mw['n_res']
+# times_mw = solution_mw['times']
+# rho_vec_mw = solution_mw['positions_rho']
+# p_vec_mw = solution_mw['momenta_p']
+# if solution_mw['success'] == True:
+#     r12_mw, r23_mw, r31_mw = get_distances_from_solution(
+#                 np.vstack([rho_vec_mw, p_vec_mw]), m1, m2
+#             )
+#     data_block_mw = np.vstack([
+#                 solution_mw['times'], 
+#                 r12_mw, r23_mw, r31_mw,
+#                 solution_mw['positions_rho'], 
+#                 solution_mw['momenta_p']
+#             ]).T
+
+#     print(f'Result mw (n12, n23, n31, nd, nc): {n_res_mw}')
+#     plot_distances(solution_mw, masses)
+#     plot_3d_motion(solution_mw, masses)
+

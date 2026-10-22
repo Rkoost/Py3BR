@@ -503,26 +503,26 @@ if __name__ == '__main__':
         plot_distances(solution_bare, masses)
         plot_3d_motion(solution_bare, masses)
 
-    # Mass weighted coordinates
-    t0 = time.time()
-    solution_mw = run_trajectory_worker(task_data=task_data, bare=False)
-    tf = time.time()
-    print(f'MW trajectory run in {tf-t0} s')
-    n_res_mw = solution_mw['n_res']
-    times_mw = solution_mw['times']
-    rho_vec_mw = solution_mw['positions_rho']
-    p_vec_mw = solution_mw['momenta_p']
-    if solution_mw['success'] == True:
-        r12_mw, r23_mw, r31_mw = get_distances_from_solution(
-                    np.vstack([rho_vec_mw, p_vec_mw]), m1, m2
-                )
-        data_block_mw = np.vstack([
-                    solution_mw['times'], 
-                    r12_mw, r23_mw, r31_mw,
-                    solution_mw['positions_rho'], 
-                    solution_mw['momenta_p']
-                ]).T
+    # # Mass weighted coordinates
+    # t0 = time.time()
+    # solution_mw = run_trajectory_worker(task_data=task_data, bare=False)
+    # tf = time.time()
+    # print(f'MW trajectory run in {tf-t0} s')
+    # n_res_mw = solution_mw['n_res']
+    # times_mw = solution_mw['times']
+    # rho_vec_mw = solution_mw['positions_rho']
+    # p_vec_mw = solution_mw['momenta_p']
+    # if solution_mw['success'] == True:
+    #     r12_mw, r23_mw, r31_mw = get_distances_from_solution(
+    #                 np.vstack([rho_vec_mw, p_vec_mw]), m1, m2
+    #             )
+    #     data_block_mw = np.vstack([
+    #                 solution_mw['times'], 
+    #                 r12_mw, r23_mw, r31_mw,
+    #                 solution_mw['positions_rho'], 
+    #                 solution_mw['momenta_p']
+    #             ]).T
 
-        print(f'Result mw (n12, n23, n31, nd, nc): {n_res_mw}')
-        plot_distances(solution_mw, masses)
-        plot_3d_motion(solution_mw, masses)
+    #     print(f'Result mw (n12, n23, n31, nd, nc): {n_res_mw}')
+    #     plot_distances(solution_mw, masses)
+    #     plot_3d_motion(solution_mw, masses)
