@@ -6,6 +6,7 @@ import multiprocessing as mp
 import time
 import warnings
 import os
+from functools import partial
 
 from tbr.constants import *
 from tbr.physics import *
@@ -29,12 +30,15 @@ def get_distances_from_solution(y, m1, m2):
     
     return r12, r23, r31
 
-def run_trajectory_worker(task_data, t_stop=3, r_stop=3, r_tol=1e-10, a_tol=1e-12):
+def run_trajectory_worker(task_data, t_stop=3, r_stop=3, r_tol=1e-10, a_tol=1e-12,
+                          bare=True):
+    """Run one trajectory; set bare=False for mass-weighted initial coordinates."""
     (m1, m2, m3, E0, b0, R0, v_funcs, dv_funcs, seed) = task_data
     
     sim = TbrSimulator(
         m1=m1, m2=m2, m3=m3, E0=E0, b0=b0, R0=R0, 
-        v_funcs=v_funcs, dv_funcs=dv_funcs, t_stop=t_stop, r_stop=r_stop, r_tol=r_tol, a_tol=a_tol
+        v_funcs=v_funcs, dv_funcs=dv_funcs, t_stop=t_stop, r_stop=r_stop,
+        r_tol=r_tol, a_tol=a_tol, bare=bare
     )
     
     solution = sim.run_trajectory(seed=seed)
@@ -95,7 +99,8 @@ def run_trajectory_worker(task_data, t_stop=3, r_stop=3, r_tol=1e-10, a_tol=1e-1
 
 def run_parallel_batch(num_trajectories, masses, E0, b0, R0, v_funcs, dv_funcs, 
                        num_cores=None, save_detailed=False, output_dir='trajectories',
-                       file_fmt='npy'):
+                       file_fmt='npy', bare=True):
+    """Run a batch using bare (default) or mass-weighted (bare=False) sampling."""
     
     m1, m2, m3 = masses
 
@@ -120,7 +125,7 @@ def run_parallel_batch(num_trajectories, masses, E0, b0, R0, v_funcs, dv_funcs,
     start_time = time.time()
     
     with mp.Pool(processes=num_cores) as pool:
-        results = pool.map(run_trajectory_worker, tasks)
+        results = pool.map(partial(run_trajectory_worker, bare=bare), tasks)
 
     rejections = [r['message'] for r in results if not r['success'] and r.get('message') is not None]
     if rejections:
@@ -176,7 +181,8 @@ def run_parallel_batch(num_trajectories, masses, E0, b0, R0, v_funcs, dv_funcs,
     }
 
 def run_b_scan(b_range, num_traj_per_b, masses, E0, R0, v_funcs, dv_funcs, 
-               num_cores = None, summary_file='summary.csv', save_detailed=False):
+               num_cores = None, summary_file='summary.csv', save_detailed=False,
+               bare=True):
     
     '''
     Run trajectories over a range of impact parameters for a given collision energy. 
@@ -192,6 +198,7 @@ def run_b_scan(b_range, num_traj_per_b, masses, E0, R0, v_funcs, dv_funcs,
         num_cores: Number of cpus to use for parallel computing
         summary_file: String containing file name for storing results
         save_detailed: If True, saves each trajectory as a numpy file for further analysis.
+        bare: Use bare coordinates if True (default), mass-weighted coordinates if False.
     
     '''
     print(f"Starting Scan over b0: {b_range}")
@@ -205,7 +212,7 @@ def run_b_scan(b_range, num_traj_per_b, masses, E0, R0, v_funcs, dv_funcs,
             masses=masses, E0=E0, b0=b0, R0=R0,
             v_funcs=v_funcs, dv_funcs=dv_funcs,
             num_cores=num_cores, # Adjust cores here
-            save_detailed=save_detailed
+            save_detailed=save_detailed, bare=bare
         )
         if summary_file:
             file_exists = os.path.isfile(summary_file)
@@ -227,8 +234,26 @@ def run_b_scan(b_range, num_traj_per_b, masses, E0, R0, v_funcs, dv_funcs,
 
 
 class TbrSimulator:
+    """
+    Three-body trajectory simulator class. 
+    Inputs:
+    m1, m2, m3: Masses of the three particles (in atomic mass units)
+    E0: Collision energy (in Kelvin)
+    b0: Impact parameter (in atomic units)
+    R0: Initial hyperradius (in atomic units)
+    v_funcs: List of interatomic potentials (V12, V23, V31)
+    dv_funcs: List of interatomic potential derivatives w.r.t. distance (dV12, dV23, dV31)
+    t_stop: Time stop parameter
+    r_stop: Distance stop parameter
+    r_tol: Relative tolerance
+    a_tol: Absolute tolerance
+    bare: Use bare coordinates if True (default), mass-weighted coordinates if False.
+
+    """
+
     def __init__(self, m1, m2, m3, E0, b0, R0,
-                 v_funcs, dv_funcs, t_stop = 3, r_stop = 3, r_tol = 1e-11, a_tol = 1e-13):
+                 v_funcs, dv_funcs, t_stop = 3, r_stop = 3, r_tol = 1e-11, a_tol = 1e-13,
+                 bare=True):
         
         self.m1, self.m2, self.m3 = m1*U2ME, m2*U2ME, m3*U2ME
         self.mtot = self.m1 + self.m2 + self.m3
@@ -249,6 +274,7 @@ class TbrSimulator:
         self.r_stop = r_stop
         self.rtol = r_tol
         self.atol = a_tol
+        self.bare = bare
 
         self.t_max = self.R0 / np.sqrt(2 * self.E0 / self.mu312) * self.t_stop
 
@@ -306,7 +332,7 @@ class TbrSimulator:
     def run_trajectory(self, seed=None):
         w0, R_init, status, V_rej, R_rej = self.iCond(seed)
 
-        # 1. Check Initial Conditions Status
+        # Check Initial Conditions
         if np.any(np.isnan(w0)):
             if status == 1:
                 return {'t': np.array([0.0]), 'y': np.full((12, 1), np.nan), 'success': False,'rejected_ic': True, 'rejected_energy': False}
@@ -319,7 +345,6 @@ class TbrSimulator:
                     'V_rej': V_rej
                 }
             return {'t': np.array([0.0]), 'y': np.full((12, 1), np.nan), 'success': False,'rejected_ic': True, 'rejected_energy': False}
-        # --- NEW: Calculate Initial Energy ---
 
         v12, v23, v31 = self.v_funcs
         dv12, dv23, dv31 = self.dv_funcs
@@ -336,12 +361,19 @@ class TbrSimulator:
         u1 = np.sqrt(self.mu12/self.mu0)
         u2 = np.sqrt(self.mu312/self.mu0)
 
-        # Bare representation
-        y0 = np.concatenate((rho6D_0,
-                             P6D_0[:3]*u1, P6D_0[3:]*u2))
-        avg_r = self.avg_rel_dist(y0)
-        avg_p = self.avg_rel_p(y0)
-        t_max = avg_r*self.mu0/avg_p*self.t_stop
+        if self.bare:
+            y0 = np.concatenate((rho6D_0,
+                                 P6D_0[:3]*u1, P6D_0[3:]*u2))
+            avg_r = self.avg_rel_dist(y0)
+            avg_p = self.avg_rel_p(y0)
+            t_max = avg_r*self.mu0/avg_p*self.t_stop
+        else:
+            y0 = np.concatenate((rho6D_0[:3]/u1, rho6D_0[3:]/u2,
+                                 P6D_0[:3]*u1, P6D_0[3:]*u2))
+            avg_r = self.avg_rel_dist(y0)
+            avg_p = self.avg_rel_p(y0)
+            t_max = R_init*self.mu0/np.linalg.norm(P6D_0)*self.t_stop
+
         t_span = [0, t_max]
         solution = solve_ivp(
             hamEq_jit, t_span, y0, method='RK45',events=stop_event_jit, 
@@ -383,41 +415,18 @@ class TbrSimulator:
         result = checkBound_jit(final_w, self.m1, self.m2, self.m3, self.C1, self.C2, v12, v23, v31, dv12, dv23, dv31)
 
         return result
-    
-    
 
-
-    
 if __name__ == '__main__':
-    from potentials import *
-    from plotters import *
+    # Example: He + He + He(+) collisions.
+    from tbr.constants import *
+    from tbr.potentials import He2_V, He2_dV, He2plus_V, He2plus_dV
+    from tbr.plotters import *
 
-    # He2 parameters
-    rm = 0.29683e-9/BOH2M # position of min of V(r) : equilibrium length \approx 2.96 Angstrom
-    eps = 10.956 * K2HAR # epsilon /k_B: reduction factor of potential \approx well depth = 3.32e-5 hartree
-    A = 1.86924404e5
-    alpha = 10.5717543
-    beta = -2.007758779
-    c6 = 1.35186623
-    c8 = 0.41495143
-    c10 = 0.17151143
-    D = 1.438
-    v_He2 = He2_V(rm, eps, A, alpha, beta, c6, c8, c10, D)
-    dv_He2 = He2_dV(rm, eps, A, alpha, beta, c6, c8, c10, D)
+    v_He2 = He2_V()
+    dv_He2 = He2_dV()
 
-    De = 0.09027661
-    re = 2.04725623
-    beta = 1.09314253
-    b = 1.6059377
-    c = 0.00957858
-    As = 0.77802774
-    Bs = 6.15941548
-    Al = 2.03590553
-    Bl = 6.65881373
-    alpha = 1.3793
-    q = 1
-    v_He2plus = he2_plus(De, re, beta, b, c, As, Bs, Al, Bl, alpha, q)
-    dv_He2plus = dhe2_plus(De, re, beta, b, c, As, Bs, Al, Bl, alpha, q)
+    v_He2plus = He2plus_V()
+    dv_He2plus = He2plus_dV()
 
     v_funcs = (v_He2, v_He2plus, v_He2plus)
     dv_funcs = (dv_He2, dv_He2plus, dv_He2plus)
@@ -428,56 +437,92 @@ if __name__ == '__main__':
     R0 = 2000.0
     dR0 = 0.1*R0
 
-    b_values = np.linspace(0, 20, 3)
+    ###----- Run full b scan for E0 -----###
+    # b_values = np.linspace(0, 20, 3)
+    # try:
+    #     run_b_scan(
+    #         b_range=b_values, num_traj_per_b=30,
+    #         masses=masses, E0=E0, R0=R0, v_funcs=v_funcs,
+    #         dv_funcs=dv_funcs,
+    #         summary_file='summary_results.csv',
+    #         save_detailed=True,
+    #         bare=True 
+    #     )
+    # except RuntimeError as e:
+    #     print(f'Multiprocessing error: {e}')
 
-    masses = (4.0026, 4.0026, 4.0026) # He, He, He+
-    m1, m2, m3 = masses
-    E0 = 1e-02 # Kelvin
-    R0 = 500.0
-    dR0 = 0.1*R0
-    b0 = 0
+    ###----- Replot a previously run trajectory -----###
+    # import glob
+    # TARGET_SEED = 22606352
+    # search_pattern=f'trajectories/*seed{TARGET_SEED}.npy'
+    # files = glob.glob(search_pattern)
 
-    mu0 = np.sqrt(m1*m2*m3/(m1+m2+m3))*U2ME
-    P0 = np.sqrt(2*E0*K2HAR*mu0)
-    print(f'P0 = {P0:.2e} for E0 = {E0} K')
-    # seed = 1239823
-    # seed = 10964947 # Reactive
+    # if files:
+    #     filename = files[0]
+    #     data = np.load(filename)]
+    #     plot_distances(data, TARGET_SEED, E0=0, b0=0)
+    #     plot_2d_motion(data, TARGET_SEED)
+    #     plot_3d_motion(data, m1, m2, m3, TARGET_SEED)
+    #     animate_3d_forces(data, masses, dv_funcs, scale=2000, filename=f'anim_seed{TARGET_SEED}.gif')
+    #     plt.show()
+    # else:
+    #     print("File not found.")
+
+
+    ###----- Run one trajectory -----###
     seed = int(np.random.random()*8923) + 102381
-    # seed = 108000 # Reactive 0.1 K
-    # seed = 105447 # Reactive 0.001 K
     print(f'Running trajectory with seed {seed}...')
-    
-    # print(np.sqrt(2*E0*K2HAR/mu0))
-    task_data = m1, m2, m3, E0, b0, R0, dR0, v_funcs, dv_funcs, seed
+
+    b0 = 0 # Impact parameter
+    task_data = m1, m2, m3, E0, b0, R0, v_funcs, dv_funcs, seed 
+
+    # Bare coordinates
     t0 = time.time()
-    solution = run_trajectory_worker(task_data=task_data)
+    solution_bare = run_trajectory_worker(task_data=task_data, bare=True)
     tf = time.time()
-    print(f'Trajectory run in {tf-t0} s')
-    n_res = solution['n_res']
-    times = solution['times']
-    rho_vec = solution['positions_rho']
-    p_vec = solution['momenta_p']
-    if solution['success'] and len(solution['times']) > 0:
-    
+    print(f'Bare trajectory run in {tf-t0} s')
+
+    n_res = solution_bare['n_res']
+    times = solution_bare['times']
+    rho_vec = solution_bare['positions_rho']
+    p_vec = solution_bare['momenta_p']
+
+
+    if solution_bare['success'] == True:
         r12, r23, r31 = get_distances_from_solution(
                     np.vstack([rho_vec, p_vec]), m1, m2
                 )
-        
+
         data_block = np.vstack([
-                    solution['times'], 
+                    solution_bare['times'], 
                     r12, r23, r31,
-                    solution['positions_rho'], 
-                    solution['momenta_p']
+                    solution_bare['positions_rho'], 
+                    solution_bare['momenta_p']
                 ]).T
-        
-        print(n_res)
-        print(rho_vec)
-        plot_distances(data_block, seed, E0, b0)
-        # plot_2d_motion(data_block, seed)
-        plot_3d_motion(data_block, m1, m2, m3, seed)
-        plot_relative_e(solution, masses, v_funcs)
-        # plot_energy_trace(solution, masses, v_funcs)
-        # animate_3d_forces(solution, masses, dv_funcs, scale = 0,
-        #                   filename='trajectory_forces7.gif', duration_seconds=10,
-        #                   azim=0,elev=30)
-        plt.show()
+        print(f'Result bare (n12, n23, n31, nd, nc): {n_res}')
+        plot_distances(solution_bare, masses)
+        plot_3d_motion(solution_bare, masses)
+
+    # Mass weighted coordinates
+    t0 = time.time()
+    solution_mw = run_trajectory_worker(task_data=task_data, bare=False)
+    tf = time.time()
+    print(f'MW trajectory run in {tf-t0} s')
+    n_res_mw = solution_mw['n_res']
+    times_mw = solution_mw['times']
+    rho_vec_mw = solution_mw['positions_rho']
+    p_vec_mw = solution_mw['momenta_p']
+    if solution_mw['success'] == True:
+        r12_mw, r23_mw, r31_mw = get_distances_from_solution(
+                    np.vstack([rho_vec_mw, p_vec_mw]), m1, m2
+                )
+        data_block_mw = np.vstack([
+                    solution_mw['times'], 
+                    r12_mw, r23_mw, r31_mw,
+                    solution_mw['positions_rho'], 
+                    solution_mw['momenta_p']
+                ]).T
+
+        print(f'Result mw (n12, n23, n31, nd, nc): {n_res_mw}')
+        plot_distances(solution_mw, masses)
+        plot_3d_motion(solution_mw, masses)

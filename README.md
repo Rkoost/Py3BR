@@ -47,6 +47,17 @@ To run one trajectory, run:
 
 `tbr.simulator.run_trajectory_worker(task_data=task_data)`
 
+The transformation to hyperspherical coordinates can be done in 2 ways.
+Bare coordinates are the default. To use mass-weighted (MW) initial coordinates,
+pass `bare=False`:
+
+```python
+result = tbr.simulator.run_trajectory_worker(task_data=task_data, bare=False)
+```
+
+The same `bare` option is available on `TbrSimulator`, `run_parallel_batch`, and
+`run_b_scan`. 
+
 To scan a range of impact parameters for a given collision energy, run:
 
 ```python

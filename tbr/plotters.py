@@ -461,6 +461,7 @@ def plot_energy_trace(result_dict, masses, v_funcs):
     ax1.set_title(f"System Energy vs Time (Seed: {result_dict.get('seed', 'N/A')})")
     ax1.legend()
     ax1.grid(True, alpha=0.3)
+    plt.tight_layout()
     
     # # Plot B: Relative Error (Log scale is often useful here)
     # # Error = |(E(t) - E0) / E0|
@@ -475,7 +476,6 @@ def plot_energy_trace(result_dict, masses, v_funcs):
     # ax2.grid(True, alpha=0.3)
     # ax2.set_title(f"Conservation Accuracy (Mean Error: {np.mean(rel_error):.2e})")
 
-    plt.tight_layout()
     
     # # Save or Show
     # filename = f"energy_trace_{result_dict.get('seed', 'test')}.png"

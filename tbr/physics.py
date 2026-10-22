@@ -64,7 +64,7 @@ def find_barrier(v, dv, j, mu):
                 for _ in range(50):
                     c = (a + b) / 2.0
                     fc = dv(c) - j*(j+1)/(mu * c**3)
-                    if abs(fc) < 1e-8:
+                    if np.abs(fc) < 1e-8:
                         break
                     if np.sign(fa) == np.sign(fc):
                         a = c
@@ -332,13 +332,13 @@ def iCond_jit(E0, b0, R0, dR0, m1,m2,m3, v12, v23, v31, seeded_rng):
                     +(rho2y + C2*rho1y)**2 
                     +(rho2z + C2*rho1z)**2)
     
-    if abs(v12(r12_0)) > 0.01*E0:
+    if np.abs(v12(r12_0)) > 0.01*E0:
         print(f'Rejected: v12(r12_0) > 0.01*E0 ')
         return np.full(12, np.nan), R, 2, v12(r12_0), r12_0, angles
-    if abs(v23(r23_0)) > 0.01*E0:
+    if np.abs(v23(r23_0)) > 0.01*E0:
         print('Rejected: v23(r23) > 0.01*E0')
         return np.full(12, np.nan), R, 2, v23(r23_0), r23_0, angles
-    if abs(v31(r31_0)) > 0.01*E0:
+    if np.abs(v31(r31_0)) > 0.01*E0:
         print('Rejected: v31(r31) > 0.01*E0')
         return np.full(12, np.nan), R, 2, v31(r31_0), r31_0, angles
 
